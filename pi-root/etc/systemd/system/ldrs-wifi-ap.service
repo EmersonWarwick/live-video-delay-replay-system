@@ -1,0 +1,13 @@
+[Unit]
+Description=Sport Assist Wi-Fi network (AP or client mode)
+After=network.target NetworkManager.service ldrs-network.service
+Wants=network.target ldrs-network.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/ldrs-wifi-network-boot.sh
+ExecStop=/usr/local/bin/ldrs-wifi-ap-stop.sh
+
+[Install]
+WantedBy=multi-user.target

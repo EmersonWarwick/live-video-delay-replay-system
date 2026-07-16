@@ -1,0 +1,12 @@
+[Unit]
+Description=Sport Assist HDMI mode — enable delayed or live service (not both)
+After=ldrs-network.service ldrs-camera-discovery.service
+Before=ldrs-hdmi-delay.service ldrs-hdmi-live.service ldrs-hdmi-idle.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/ldrs-hdmi-apply.sh
+
+[Install]
+WantedBy=multi-user.target

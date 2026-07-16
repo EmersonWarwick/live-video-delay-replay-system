@@ -1,0 +1,13 @@
+[Unit]
+Description=Sport Assist commissioned camera boot (network, discovery, replay)
+After=ldrs-wifi-ap.service ldrs-usb-hardening.service
+Before=ldrs-camera-discovery.service ldrs-replay-buffer.service ldrs-hdmi-apply.service
+ConditionPathExists=/etc/sportassist/camera.env
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/ldrs-ensure-commissioned.sh
+
+[Install]
+WantedBy=multi-user.target

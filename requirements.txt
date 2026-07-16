@@ -1,0 +1,20 @@
+# Live Video Delay Replay System — Python install notes (Pi)
+#
+# This file is the entry point for contributors. The pip package pin list is
+# requirements-pip.txt (Flask and zeep come from apt on Raspberry Pi OS).
+#
+# On the Pi, prefer:
+#   ./scripts/install-pi-python-deps.sh
+#
+# Or manually (see build-instructions-mac.md §4.1):
+#   sudo apt install -y python3-zeep python3-flask
+#   sudo pip3 install --break-system-packages --ignore-installed isodate \
+#     --no-binary onvif-zeep -r requirements-pip.txt
+#
+# Apt (do not replace with pip on Raspberry Pi OS — avoids isodate stub conflicts):
+#   python3-flask   — Flask web UI / API (app.py)
+#   python3-zeep    — SOAP stack used with ONVIF
+#
+# Pip (requirements-pip.txt):
+#   onvif-zeep      — ONVIF camera client (install with --no-binary so WSDL files ship)
+#   WSDiscovery     — WS-Discovery camera search

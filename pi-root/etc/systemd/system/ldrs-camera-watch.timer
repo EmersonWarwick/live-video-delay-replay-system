@@ -1,0 +1,10 @@
+[Unit]
+Description=Periodic camera IP resolution when stream is lost
+
+[Timer]
+OnBootSec=45
+OnUnitActiveSec=30
+AccuracySec=5
+
+[Install]
+WantedBy=timers.target

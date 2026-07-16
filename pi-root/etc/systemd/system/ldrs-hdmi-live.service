@@ -1,0 +1,26 @@
+[Unit]
+Description=Sport Assist 4K HDMI focus output (direct RTSP, no buffer)
+After=ldrs-camera-discovery.service ldrs-hdmi-apply.service
+Wants=ldrs-camera-discovery.service
+Conflicts=ldrs-hdmi-delay.service
+
+[Service]
+Type=simple
+User=sportassist
+Group=sportassist
+Environment=HOME=/home/sportassist
+Environment=DISPLAY=:0
+Environment=XDG_RUNTIME_DIR=/run/vlc-runtime
+RuntimeDirectory=vlc-runtime
+RuntimeDirectoryMode=0700
+LogsDirectory=sportassist
+LogsDirectoryMode=0755
+ExecStart=/usr/local/bin/ldrs-hdmi-live.sh
+Restart=always
+RestartSec=5
+TimeoutStopSec=10
+KillMode=control-group
+ExecStopPost=/usr/local/bin/ldrs-hdmi-idle-start.sh
+
+[Install]
+WantedBy=multi-user.target

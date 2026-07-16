@@ -1,0 +1,7 @@
+{
+  "activePresetId": "wide",
+  "presets": [
+    { "id": "wide", "label": "Wide pool", "zoom": 0.0, "focus": 0.5 },
+    { "id": "board", "label": "Board", "zoom": 0.35, "focus": 0.5 }
+  ]
+}

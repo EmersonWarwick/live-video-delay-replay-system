@@ -1,0 +1,12 @@
+[Unit]
+Description=Sport Assist camera hostname/IP resolution
+After=ldrs-commissioned-boot.service ldrs-network.service
+Before=ldrs-replay-buffer.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/ldrs-camera-discovery.sh
+
+[Install]
+WantedBy=multi-user.target

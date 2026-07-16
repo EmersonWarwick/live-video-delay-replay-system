@@ -1,0 +1,6 @@
+# Pi pip packages (install after apt: python3-zeep python3-flask — see build-instructions-mac.md §4.1).
+# zeep/Flask come from apt; do not pip-install them (isodate stub conflict on Raspberry Pi OS).
+# pip install must pass --no-binary onvif-zeep (piwheels wheel omits WSDL files).
+
+onvif-zeep>=0.2.12
+WSDiscovery>=2.0.0

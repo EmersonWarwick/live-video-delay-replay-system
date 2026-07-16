@@ -1,0 +1,12 @@
+[Unit]
+Description=Sport Assist camera IP watchdog (relocate when camera IP changes)
+After=ldrs-network.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/ldrs-camera-watch.sh
+# Camera may still be booting — "not found" is normal for the watchdog timer.
+SuccessExitStatus=1
+
+[Install]
+WantedBy=timers.target

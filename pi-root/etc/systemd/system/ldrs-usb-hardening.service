@@ -1,0 +1,14 @@
+[Unit]
+Description=Sport Assist USB hardening (USBGuard + EEPROM)
+DefaultDependencies=no
+After=local-fs.target
+Before=usbguard.service ldrs-wifi-ap.service
+ConditionPathExists=/usr/local/bin/ldrs-apply-usb-hardening.sh
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/ldrs-apply-usb-hardening.sh
+
+[Install]
+WantedBy=multi-user.target

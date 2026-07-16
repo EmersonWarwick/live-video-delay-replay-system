@@ -1,0 +1,29 @@
+# Per-unit secrets — copy from *.env.example at build time; never commit
+config/appliance-*.env
+config/web-*.env
+!config/*.env.example
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*.code-workspace
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Build artefacts
+pi-root-sync.tar.gz
+*.tar.gz
+
+# Local env overrides
+.env
+.env.local

@@ -1,0 +1,432 @@
+{% extends "base.html" %} {% block title %}Network Settings — Sport Assist{%
+endblock %} {% block content %}
+<div
+  style="
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  "
+>
+  <h1 style="margin: 0">Network Settings</h1>
+  <div class="btn-row" style="margin: 0">
+    <a
+      href="{{ url_for('settings_page') }}"
+      class="btn btn-secondary"
+      style="text-decoration: none; display: inline-block"
+      >← Settings</a
+    >
+    <form method="post" action="{{ url_for('web_logout') }}" style="margin: 0">
+      <button type="submit" class="btn btn-secondary">Log out</button>
+    </form>
+  </div>
+</div>
+
+<p class="hint">
+  Configure poolside Wi‑Fi AP or join the building network. The unit always
+  falls back to local AP mode if client Wi‑Fi fails.
+</p>
+
+<div class="card" id="net-status-card">
+  <h2>Network status</h2>
+  <div class="status-grid" id="net-status-grid">
+    <div>Mode: <strong id="st-mode">…</strong></div>
+    <div>State: <strong id="st-state">…</strong></div>
+    <div>SSID: <strong id="st-ssid">…</strong></div>
+    <div>IP: <strong id="st-ip">…</strong></div>
+    <div>Hostname: <strong id="st-hostname">sport-assist.local</strong></div>
+    <div>Signal: <strong id="st-signal">—</strong></div>
+    <div>AP: <strong id="st-ap">…</strong></div>
+    <div>Client Wi‑Fi: <strong id="st-client">…</strong></div>
+    <div>Camera: <strong id="st-camera">…</strong></div>
+    <div>Replay: <strong id="st-replay">…</strong></div>
+  </div>
+  <div class="status-grid" id="ssh-endpoints-grid" style="margin-top: 0.6rem">
+    <div>Ethernet SSH: <strong id="st-ssh-eth">…</strong></div>
+    <div>Wi‑Fi SSH: <strong id="st-ssh-wlan">…</strong></div>
+  </div>
+  <p class="hint" id="ssh-hint" style="margin-top: 0.5rem">
+    SSH stays on eth0 (camera port) and wlan0 (AP or building Wi‑Fi). Use
+    <code>sport-assist.local</code> when mDNS works.
+  </p>
+  <div class="btn-row" style="margin-top: 0.8rem">
+    <button type="button" class="btn btn-secondary" id="btn-refresh-status">
+      Refresh status
+    </button>
+    <button type="button" class="btn btn-secondary" id="btn-view-logs">
+      View / export logs
+    </button>
+  </div>
+  <pre
+    id="net-logs"
+    style="
+      display: none;
+      margin-top: 0.8rem;
+      max-height: 320px;
+      overflow: auto;
+      font-size: 0.72rem;
+      background: #0f172a;
+      padding: 0.8rem;
+      border-radius: 0.5rem;
+      white-space: pre-wrap;
+    "
+  ></pre>
+</div>
+
+<div class="card">
+  <h2>Network mode</h2>
+  <div class="radio-row">
+    <label
+      ><input type="radio" name="net_mode" value="ap" id="mode-ap" checked />
+      Local AP mode</label
+    >
+    <label
+      ><input type="radio" name="net_mode" value="client" id="mode-client" />
+      Client building Wi‑Fi</label
+    >
+  </div>
+  <p class="hint" id="mode-hint">
+    Local AP: tablets join <strong id="ap-ssid-hint">…</strong> at
+    <code>http://192.168.4.1</code>. SSH:
+    <code>ssh sportassist@192.168.4.1</code> or <code>sport-assist.local</code>.
+  </p>
+</div>
+
+<div class="card" id="client-wifi-card">
+  <h2>Building Wi‑Fi</h2>
+  <div class="btn-row">
+    <button type="button" class="btn btn-secondary" id="btn-scan">
+      Scan for networks
+    </button>
+  </div>
+  <p class="hint" id="scan-msg" style="display: none"></p>
+  <div
+    id="scan-results"
+    class="cam-results"
+    style="display: none; margin-bottom: 0.8rem"
+  ></div>
+
+  <label for="client-ssid">Network (SSID)</label>
+  <input
+    type="text"
+    id="client-ssid"
+    placeholder="Building Wi-Fi name"
+    autocomplete="off"
+  />
+
+  <label for="client-security">Security</label>
+  <select id="client-security">
+    <option value="wpa2-psk">WPA2 Personal (password)</option>
+    <option value="wpa-eap">WPA2 Enterprise (username + password)</option>
+    <option value="open">Open (no password)</option>
+  </select>
+
+  <div id="enterprise-fields" style="display: none">
+    <label for="client-username">Username (enterprise)</label>
+    <input
+      type="text"
+      id="client-username"
+      autocomplete="off"
+      placeholder="802.1X identity"
+    />
+  </div>
+
+  <label for="client-password">Password</label>
+  <input
+    type="password"
+    id="client-password"
+    autocomplete="new-password"
+    placeholder="Leave blank to keep saved password"
+  />
+  <p class="hint" id="pass-hint">
+    Saved passwords are never shown. Enter a new password only when changing
+    credentials.
+  </p>
+</div>
+
+<div class="card">
+  <h2>Hostname</h2>
+  <label for="device-hostname">mDNS hostname</label>
+  <input type="text" id="device-hostname" value="sport-assist.local" />
+  <p class="hint">
+    Reach this unit at <code>http://sport-assist.local:8080</code> when mDNS
+    works on the network.
+  </p>
+</div>
+
+<p id="net-error" class="error" style="display: none"></p>
+<p id="net-success" class="msg"></p>
+
+<div class="btn-row">
+  <button type="button" class="btn" id="btn-save">Save settings</button>
+  <button type="button" class="btn" id="btn-apply">Apply settings</button>
+  <button type="button" class="btn btn-secondary" id="btn-switch-ap">
+    Switch to AP mode
+  </button>
+  <button type="button" class="btn btn-secondary" id="btn-switch-client">
+    Switch to client Wi‑Fi
+  </button>
+  <button type="button" class="btn btn-secondary" id="btn-forget">
+    Forget client Wi‑Fi
+  </button>
+</div>
+
+<script>
+  (function () {
+    const $ = (id) => document.getElementById(id);
+
+    function showError(msg) {
+      const el = $("net-error");
+      el.textContent = msg || "";
+      el.style.display = msg ? "block" : "none";
+    }
+
+    function showSuccess(msg) {
+      const el = $("net-success");
+      el.textContent = msg || "";
+      el.classList.toggle("show", !!msg);
+    }
+
+    async function api(path, opts) {
+      const res = await fetch(
+        path,
+        Object.assign({ credentials: "same-origin" }, opts || {}),
+      );
+      if (res.status === 401) {
+        window.location.href = "/login?expired=1";
+        throw new Error("auth");
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok && !data.errors) {
+        throw new Error(data.error || "Request failed");
+      }
+      return data;
+    }
+
+    function securityLabel(v) {
+      if (v === "wpa-eap") return "Enterprise";
+      if (v === "open") return "Open";
+      return "WPA2";
+    }
+
+    function updateModeUI(useAp) {
+      $("mode-ap").checked = useAp;
+      $("mode-client").checked = !useAp;
+      $("client-wifi-card").style.opacity = useAp ? "0.65" : "1";
+      $("enterprise-fields").style.display =
+        $("client-security").value === "wpa-eap" ? "block" : "none";
+    }
+
+    function renderStatus(st) {
+      $("st-mode").textContent = st.mode === "ap" ? "Local AP" : "Client Wi‑Fi";
+      $("st-state").textContent = st.state || "—";
+      $("st-ssid").textContent = st.connectedSsid || "—";
+      $("st-ip").textContent = st.ipAddress || "—";
+      $("st-hostname").textContent = st.hostname || "sport-assist.local";
+      $("st-signal").textContent =
+        st.signalStrength != null ? st.signalStrength + "%" : "—";
+      $("st-ap").textContent = st.apActive ? "active" : "inactive";
+      $("st-client").textContent = st.clientWifiStatus || "—";
+      $("st-camera").textContent = st.cameraConnected
+        ? "connected"
+        : "not connected";
+      $("st-replay").textContent = st.replayServiceActive
+        ? "running"
+        : "stopped";
+      const ssh = st.sshEndpoints || {};
+      const eth = ssh.eth0 || {};
+      const wlan = ssh.wlan0 || {};
+      $("st-ssh-eth").textContent = eth.sshAvailable
+        ? eth.ip || "yes"
+        : eth.hint || "no address yet";
+      $("st-ssh-wlan").textContent = wlan.sshAvailable
+        ? wlan.ip || "yes"
+        : wlan.apActive
+          ? (wlan.apIp || "192.168.4.1") + " (AP)"
+          : wlan.hint || "—";
+    }
+
+    async function loadConfig() {
+      const data = await api("/api/network/config");
+      const c = data.config || {};
+      $("device-hostname").value = c.deviceHostname || "sport-assist.local";
+      $("client-ssid").value = c.clientWifiSsid || "";
+      $("client-username").value = c.clientWifiUsername || "";
+      $("client-security").value = c.clientWifiSecurityType || "wpa2-psk";
+      $("ap-ssid-hint").textContent = c.localApSsid || "(AP SSID)";
+    }
+
+    async function refreshStatus() {
+      const data = await api("/api/network/status");
+      renderStatus(data);
+      if (data.mode === "ap") updateModeUI(true);
+      else if (data.mode === "client") updateModeUI(false);
+    }
+
+    function payloadFromForm() {
+      const useAp = $("mode-ap").checked;
+      const ssid = $("client-ssid").value.trim();
+      const body = {
+        useLocalAccessPoint: ssid ? false : useAp,
+        clientWifiSsid: ssid,
+        clientWifiUsername: $("client-username").value.trim(),
+        clientWifiSecurityType: $("client-security").value,
+        deviceHostname: $("device-hostname").value.trim(),
+      };
+      const pass = $("client-password").value;
+      if (pass) body.clientWifiPassword = pass;
+      return body;
+    }
+
+    function renderScan(networks) {
+      const box = $("scan-results");
+      if (!networks || !networks.length) {
+        box.style.display = "none";
+        return;
+      }
+      box.innerHTML = networks
+        .map((n) => {
+          const id = "scan-" + btoa(n.ssid).replace(/=/g, "");
+          return `<label style="display:block;margin:0.3rem 0;">
+        <input type="radio" name="scan_pick" value="${n.ssid.replace(/"/g, "&quot;")}"
+          data-security="${n.securityType}" id="${id}" />
+        ${n.ssid} — ${securityLabel(n.securityType)}, ${n.signalStrength}%
+      </label>`;
+        })
+        .join("");
+      box.style.display = "block";
+      box.querySelectorAll("input[type=radio]").forEach((el) => {
+        el.addEventListener("change", () => {
+          $("client-ssid").value = el.value;
+          $("client-security").value = el.dataset.security || "wpa2-psk";
+          $("enterprise-fields").style.display =
+            $("client-security").value === "wpa-eap" ? "block" : "none";
+        });
+      });
+    }
+
+    $("mode-ap").addEventListener("change", () => updateModeUI(true));
+    $("mode-client").addEventListener("change", () => updateModeUI(false));
+    $("client-security").addEventListener("change", () => {
+      $("enterprise-fields").style.display =
+        $("client-security").value === "wpa-eap" ? "block" : "none";
+    });
+
+    $("btn-refresh-status").addEventListener("click", () => {
+      showError("");
+      refreshStatus().catch((e) => showError(e.message));
+    });
+
+    $("btn-scan").addEventListener("click", async () => {
+      showError("");
+      showSuccess("");
+      const msg = $("scan-msg");
+      msg.style.display = "block";
+      msg.textContent = "Scanning… AP may pause briefly.";
+      $("btn-scan").disabled = true;
+      try {
+        const data = await api("/api/network/scan", { method: "POST" });
+        if (!data.ok) throw new Error(data.error || "Scan failed");
+        renderScan(data.networks);
+        msg.textContent = `Found ${data.networks.length} network(s).`;
+      } catch (e) {
+        msg.textContent = "";
+        showError(e.message);
+      } finally {
+        $("btn-scan").disabled = false;
+      }
+    });
+
+    $("btn-save").addEventListener("click", async () => {
+      showError("");
+      showSuccess("");
+      try {
+        const data = await api("/api/network/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payloadFromForm()),
+        });
+        if (data.errors && data.errors.length) {
+          showError(data.errors.join(" "));
+          return;
+        }
+        if (!data.ok) throw new Error(data.error || "Save failed");
+        $("client-password").value = "";
+        showSuccess("Settings saved. Click Apply to switch network mode.");
+        await loadConfig();
+      } catch (e) {
+        showError(e.message);
+      }
+    });
+
+    async function runAction(path, successMsg) {
+      showError("");
+      showSuccess("");
+      try {
+        const data = await api(path, { method: "POST" });
+        if (data.errors && data.errors.length) {
+          showError(data.errors.join(" "));
+          return;
+        }
+        if (data.ok === false) {
+          showError(
+            data.error ||
+              (data.fallback
+                ? "Client Wi‑Fi failed — fell back to AP mode."
+                : "Operation failed"),
+          );
+        } else {
+          showSuccess(successMsg);
+        }
+        $("client-password").value = "";
+        await loadConfig();
+        await refreshStatus();
+      } catch (e) {
+        showError(e.message);
+      }
+    }
+
+    $("btn-apply").addEventListener("click", () =>
+      runAction("/api/network/apply", "Network settings applied."),
+    );
+    $("btn-switch-ap").addEventListener("click", () =>
+      runAction("/api/network/switch-ap", "Switched to local AP mode."),
+    );
+    $("btn-switch-client").addEventListener("click", () =>
+      runAction("/api/network/switch-client", "Connecting to building Wi‑Fi…"),
+    );
+    $("btn-forget").addEventListener("click", async () => {
+      if (
+        !confirm("Remove saved client Wi‑Fi credentials and return to AP mode?")
+      )
+        return;
+      await runAction(
+        "/api/network/forget",
+        "Client Wi‑Fi credentials removed.",
+      );
+    });
+
+    $("btn-view-logs").addEventListener("click", async () => {
+      const pre = $("net-logs");
+      if (pre.style.display === "block") {
+        pre.style.display = "none";
+        return;
+      }
+      showError("");
+      try {
+        const data = await api("/api/network/logs");
+        pre.textContent = data.logs || "(no logs)";
+        pre.style.display = "block";
+      } catch (e) {
+        showError(e.message);
+      }
+    });
+
+    loadConfig()
+      .then(refreshStatus)
+      .catch((e) => showError(e.message));
+  })();
+</script>
+{% endblock %}

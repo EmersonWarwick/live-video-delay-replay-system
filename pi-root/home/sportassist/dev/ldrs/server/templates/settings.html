@@ -1,0 +1,1749 @@
+{% extends "base.html" %} {% block title %}Settings — Sport Assist{% endblock %}
+{% block content %}
+<div
+  style="
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  "
+>
+  <h1 style="margin: 0">Sport Assist Settings</h1>
+  <form method="post" action="{{ url_for('web_logout') }}">
+    <button type="submit" class="btn btn-secondary">Log out</button>
+  </form>
+</div>
+
+{% for e in errors %}
+<p class="error">{{ e }}</p>
+{% endfor %}
+
+<div class="card">
+  <h2>Status</h2>
+  <div class="status-grid">
+    <div>Wi‑Fi SSID: <strong>{{ ap_ssid }}</strong></div>
+    <div>
+      Hostname: <strong id="status-hostname">{{ device_hostname }}</strong>
+    </div>
+    <div>Buffer: <strong>{{ status.bufferHealth }}</strong></div>
+    <div>
+      Camera:
+      <strong
+        >{% if status.cameraConnected %}connected (ingest running){% elif
+        status.cameraConfigured and status.replayBufferActive %}configured —
+        ingest warming{% elif status.cameraConfigured %}configured — ingest
+        stopped{% else %}not configured{% endif %}</strong
+      >
+    </div>
+    <div>
+      Delay: <strong>{{ status.liveDelaySeconds }}s</strong> HDMI wall-clock ·
+      Wi‑Fi offset {{ status.playbackOffsetSeconds }}s
+    </div>
+    <div>
+      HDMI:
+      <strong id="status-hdmi-mode"
+        >{% if not hdmi_enabled %}Off{% elif hdmi_mode == 'live' %}Live{% else
+        %}Delayed{% endif %}{% if hdmi_enabled %} 4K{% endif %}</strong
+      >
+    </div>
+    <div>
+      SSH:
+      <strong id="status-ssh"
+        >{% if ssh_enabled %}On{% else %}Off{% endif %}</strong
+      >
+    </div>
+  </div>
+  <p class="hint" style="margin-top: 0.6rem">
+    <a href="{{ url_for('network_settings_page') }}" style="color: #86efac"
+      >Network settings</a
+    >
+    — switch between local AP and building Wi‑Fi.
+  </p>
+</div>
+
+<div class="card">
+  <h2>HDMI 4K output</h2>
+  <p class="hint">
+    Coach poolside monitor — 3840×2160. Default is delayed replay. Turn on
+    <strong>Show Live</strong> for lens adjustment only (stops replay buffer and
+    tablet streaming).
+  </p>
+  <div class="hdmi-toggle-row" style="margin-bottom: 1rem">
+    <span
+      class="hdmi-label {% if not hdmi_enabled %}active{% endif %}"
+      id="hdmi-label-off"
+      >HDMI off</span
+    >
+    <label class="switch" title="Enable or disable HDMI output">
+      <input
+        type="checkbox"
+        id="hdmi-enabled-switch"
+        {%
+        if
+        hdmi_enabled
+        %}checked{%
+        endif
+        %}
+      />
+      <span class="slider"></span>
+    </label>
+    <span
+      class="hdmi-label {% if hdmi_enabled %}active{% endif %}"
+      id="hdmi-label-on"
+      >HDMI on</span
+    >
+  </div>
+  <div class="hdmi-toggle-row" id="hdmi-mode-row">
+    <span
+      class="hdmi-label {% if hdmi_mode == 'live' %}active{% endif %}"
+      id="hdmi-label-show-live"
+      >Show Live</span
+    >
+    <label class="switch" title="Show live camera on HDMI (lens adjustment)">
+      <input
+        type="checkbox"
+        id="hdmi-switch"
+        {%
+        if
+        hdmi_mode=""
+        ="live"
+        %}checked{%
+        endif
+        %}
+      />
+      <span class="slider"></span>
+    </label>
+  </div>
+  <p class="hint" id="hdmi-msg" style="display: none"></p>
+  <h2 style="font-size: 1rem; margin-top: 1.2rem; color: #94a3b8">
+    HDMI resolution
+  </h2>
+  <p class="hint">
+    Output timing to the coach monitor. <strong>Negotiate best</strong> uses the
+    display’s preferred EDID mode. <strong>Force 4K</strong> sets 3840×2160@60
+    (reboot if the mode does not change immediately).
+  </p>
+  <p class="hint">
+    Active now:
+    <strong id="hdmi-active-res">{{ hdmi_display_resolution }}</strong>
+  </p>
+  <div class="radio-row" id="hdmi-resolution-row">
+    <label
+      ><input
+        type="radio"
+        name="hdmi_resolution"
+        value="auto"
+        {%
+        if
+        hdmi_resolution_mode=""
+        ="auto"
+        %}checked{%
+        endif
+        %}
+      />
+      Negotiate best</label
+    >
+    <label
+      ><input
+        type="radio"
+        name="hdmi_resolution"
+        value="force_4k"
+        {%
+        if
+        hdmi_resolution_mode=""
+        ="force_4k"
+        %}checked{%
+        endif
+        %}
+      />
+      Force 4K (3840×2160)</label
+    >
+  </div>
+  <p class="hint" id="hdmi-resolution-msg" style="display: none"></p>
+</div>
+
+<div class="card">
+  <h2>SSH access</h2>
+  <p class="hint">
+    Remote shell login over Ethernet and Wi‑Fi. Turn off at the pool to block
+    SSH. This web UI still works when SSH is off.
+  </p>
+  <div class="hdmi-toggle-row">
+    <span
+      class="hdmi-label {% if not ssh_enabled %}active{% endif %}"
+      id="ssh-label-off"
+      >SSH off</span
+    >
+    <label class="switch" title="Enable or disable SSH">
+      <input
+        type="checkbox"
+        id="ssh-enabled-switch"
+        {%
+        if
+        ssh_enabled
+        %}checked{%
+        endif
+        %}
+      />
+      <span class="slider"></span>
+    </label>
+    <span
+      class="hdmi-label {% if ssh_enabled %}active{% endif %}"
+      id="ssh-label-on"
+      >SSH on</span
+    >
+  </div>
+  <p class="hint" id="ssh-msg" style="display: none"></p>
+</div>
+
+<div class="card">
+  <h2>Hostname</h2>
+  <p class="hint">
+    mDNS name for this Pi on the network (e.g.
+    <code>http://sport-assist.local:8080</code>). Wi‑Fi AP SSID is unchanged.
+  </p>
+  <label for="device-hostname">mDNS hostname</label>
+  <input
+    type="text"
+    id="device-hostname"
+    value="{{ device_hostname }}"
+    autocomplete="off"
+  />
+  <div class="btn-row" style="margin-top: 0.6rem">
+    <button type="button" class="btn btn-secondary" id="btn-save-hostname">
+      Apply hostname
+    </button>
+  </div>
+  <p class="hint" id="hostname-msg" style="display: none"></p>
+</div>
+
+<form method="post">
+  <div class="card">
+    <h2>Live delay</h2>
+    <p class="hint">
+      Seconds from live to HDMI coach monitor and tablet replay edge (when
+      <strong>Show Live</strong> is off). HDMI uses a wall-clock delay buffer —
+      this value is applied directly. Tablets use HLS (~{{ pipeline_latency }} s
+      ingest before the delayed edge). Fine-tune with
+      <code>HDMI_PLAYBACK_BIAS_SECONDS</code> in <code>system.env</code> if
+      needed.
+    </p>
+    <label for="delay">Seconds ({{ delay_min }}–{{ delay_max }})</label>
+    <input
+      type="number"
+      id="delay"
+      name="delay"
+      min="{{ delay_min }}"
+      max="{{ delay_max }}"
+      value="{{ delay }}"
+      required
+    />
+  </div>
+
+  <div class="card">
+    <h2>Idle screen</h2>
+    <p class="hint">
+      Logo and title shown on the coach monitor when no video is playing.
+    </p>
+    <div class="radio-row">
+      <label
+        ><input
+          type="radio"
+          name="idle_splash_rotation"
+          value="-90"
+          {%
+          if
+          idle_splash_rotation=""
+          ="-90"
+          %}checked{%
+          endif
+          %}
+        />
+        −90°</label
+      >
+      <label
+        ><input
+          type="radio"
+          name="idle_splash_rotation"
+          value="0"
+          {%
+          if
+          idle_splash_rotation=""
+          ="0"
+          %}checked{%
+          endif
+          %}
+        />
+        0°</label
+      >
+      <label
+        ><input
+          type="radio"
+          name="idle_splash_rotation"
+          value="90"
+          {%
+          if
+          idle_splash_rotation=""
+          ="90"
+          %}checked{%
+          endif
+          %}
+        />
+        90°</label
+      >
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Camera Ethernet</h2>
+    <div class="radio-row">
+      <label
+        ><input
+          type="radio"
+          name="eth_mode"
+          value="direct"
+          {%
+          if
+          eth_mode=""
+          ="direct"
+          %}checked{%
+          endif
+          %}
+        />
+        Direct to replay unit via PoE Injector</label
+      >
+      <label
+        ><input
+          type="radio"
+          name="eth_mode"
+          value="lan"
+          {%
+          if
+          eth_mode=""
+          ="lan"
+          %}checked{%
+          endif
+          %}
+        />
+        Customer LAN</label
+      >
+    </div>
+    <p class="hint">
+      Changing mode may pause video for ~30 seconds. SSH remains on Ethernet in
+      both modes (Direct: <code>192.168.10.1</code>; Customer LAN: eth0 DHCP
+      IP). Wi‑Fi SSH is unchanged — use Network settings for AP or building
+      Wi‑Fi.
+    </p>
+  </div>
+
+  <button type="submit" class="btn">Save settings</button>
+</form>
+
+<div class="card" id="cam-card">
+  <h2>Camera</h2>
+  {% if eth_mode == 'direct' %}
+  <p class="hint">
+    Pi DHCP on — connect the camera via PoE to Pi Ethernet. SSH:
+    <code>ssh sportassist@192.168.10.1</code> on eth0, or use Wi‑Fi AP / client
+    mode.
+  </p>
+  {% else %}
+  <p class="hint">
+    Pi DHCP off — search the customer network for ONVIF / RTSP cameras. SSH on
+    eth0 uses the LAN IP (or <code>sport-assist.local</code>); Wi‑Fi SSH is via
+    Network settings.
+  </p>
+  {% endif %} {% if camera_assigned %}
+  <p class="hint">
+    Camera assigned. Credentials below are stored on the Pi and used for ONVIF /
+    RTSP.
+  </p>
+  <label>Hostname</label>
+  <input id="cam-hostname" type="text" readonly value="{{ camera_hostname }}" />
+  {% if camera_reported_name or camera_device_id %}
+  <label>Camera identifier</label>
+  <input
+    type="text"
+    readonly
+    value="{{ camera_reported_name or camera_device_id }}"
+  />
+  <p class="hint">
+    Reported by the camera via ONVIF — used to find this camera if its IP
+    address changes.
+  </p>
+  {% endif %}
+  <label>IP address</label>
+  <input id="cam-ip" type="text" readonly value="{{ camera_ip }}" />
+  <input type="hidden" id="cam-onvif-port" value="80" />
+  <label>Username</label>
+  <input id="cam-user" type="text" readonly value="{{ camera_username }}" />
+  <label>Password</label>
+  <input
+    id="cam-pass"
+    type="text"
+    readonly
+    autocomplete="off"
+    value="{{ camera_password }}"
+  />
+  <div class="btn-row">
+    <button type="button" class="btn btn-secondary" id="btn-configure">
+      Re-configure streams
+    </button>
+    <button type="button" class="btn btn-secondary" id="btn-discover-swap">
+      {% if eth_mode == 'direct' %}Refresh camera{% else %}Search for camera on
+      LAN{% endif %}
+    </button>
+    <button type="button" class="btn btn-secondary" id="btn-clear-cam">
+      Clear camera
+    </button>
+  </div>
+  <div id="cam-swap-panel" class="cam-swap-panel" style="display: none">
+    <p class="hint" style="margin-top: 0.8rem">
+      Find a camera on the network, select it, enter its
+      <strong>factory</strong> login, then <strong>Assign camera</strong> to
+      replace the current one.
+    </p>
+    <div id="cam-swap-results" class="cam-results" style="display: none"></div>
+    {% if eth_mode == 'direct' %}
+    <p id="cam-swap-ip-direct" class="hint">
+      {% if camera_ip %}Discovered: <strong>{{ camera_ip }}</strong>{% else %}No
+      camera lease yet — connect PoE camera to Pi Ethernet, then
+      <strong>Refresh camera</strong>.{% endif %}
+    </p>
+    <input type="hidden" id="cam-swap-ip" value="{{ camera_ip }}" />
+    {% else %}
+    <label>IP address</label>
+    <input id="cam-swap-ip" type="text" placeholder="192.168.1.81" value="" />
+    {% endif %}
+    <input type="hidden" id="cam-swap-onvif-port" value="80" />
+    <label>Factory username</label>
+    <input
+      id="cam-swap-user"
+      type="text"
+      autocomplete="off"
+      placeholder="admin"
+      value=""
+    />
+    <label>Factory password</label>
+    <input
+      id="cam-swap-pass"
+      type="text"
+      autocomplete="off"
+      placeholder="admin password (private)"
+      value=""
+    />
+    <div class="btn-row">
+      <button type="button" class="btn btn-secondary" id="btn-test-swap">
+        Test login
+      </button>
+      <button type="button" class="btn" id="btn-assign-swap">
+        Assign camera
+      </button>
+      <button type="button" class="btn btn-secondary" id="btn-cancel-swap">
+        Cancel
+      </button>
+    </div>
+  </div>
+  {% else %}
+  <label>Hostname</label>
+  <input
+    id="cam-hostname"
+    type="text"
+    readonly
+    placeholder="SportAssistCam (assigned automatically)"
+    value=""
+  />
+  <p class="hint">Set automatically when you assign the camera.</p>
+  {% if eth_mode == 'direct' %}
+  <p id="cam-ip-direct" class="hint">
+    {% if camera_ip %}Discovered: <strong>{{ camera_ip }}</strong>{% else %}No
+    camera lease yet — connect PoE camera to Pi Ethernet, then
+    <strong>Refresh camera</strong>.{% endif %}
+  </p>
+  <input type="hidden" id="cam-ip" value="{{ camera_ip }}" />
+  {% else %}
+  <label>IP address</label>
+  <input
+    id="cam-ip"
+    type="text"
+    placeholder="192.168.1.81"
+    value="{{ camera_ip }}"
+  />
+  {% endif %}
+  <input type="hidden" id="cam-onvif-port" value="80" />
+  <div id="cam-results" class="cam-results" style="display: none"></div>
+  <p class="hint" style="margin-top: 0.8rem">
+    Enter the camera’s <strong>current</strong> ONVIF admin login (set privately
+    in the camera web UI before assign — do not share that password). Assigning
+    creates user <strong>sportassist</strong> with a new random password on the
+    camera via standard ONVIF.
+  </p>
+  <label>Username</label>
+  <input
+    id="cam-user"
+    type="text"
+    autocomplete="off"
+    placeholder="admin"
+    value=""
+  />
+  <label>Password</label>
+  <input
+    id="cam-pass"
+    type="text"
+    autocomplete="off"
+    placeholder="admin password (private)"
+    value=""
+  />
+  <div class="btn-row">
+    <button type="button" class="btn btn-secondary" id="btn-discover">
+      {% if eth_mode == 'direct' %}Refresh camera{% else %}Search for camera{%
+      endif %}
+    </button>
+    <button type="button" class="btn btn-secondary" id="btn-clear-cam">
+      Clear camera
+    </button>
+    <button type="button" class="btn btn-secondary" id="btn-test-cam">
+      Test login
+    </button>
+    <button type="button" class="btn" id="btn-assign-cam">Assign camera</button>
+  </div>
+  {% endif %}
+  <div id="cam-msg" class="msg"></div>
+  <p class="hint" id="cam-profile">
+    {% if ingest_size %}Configured: {{ ingest_size }} @ {{ ingest_fps }} fps {{
+    ingest_codec }} (step {{ fallback_step }}){% else %}Not configured{% endif
+    %}
+  </p>
+  {% if camera_assigned %}
+  <h2 style="margin-top: 1rem">Video overlay</h2>
+  <p class="hint">
+    Date/time stamp on the camera image via ONVIF (if supported).
+  </p>
+  <div class="hdmi-toggle-row" id="datestamp-row">
+    <span class="hdmi-label" id="datestamp-label-off">Datestamp off</span>
+    <label class="switch" title="Show or hide date/time on video">
+      <input type="checkbox" id="datestamp-switch" disabled />
+      <span class="slider"></span>
+    </label>
+    <span class="hdmi-label" id="datestamp-label-on">Datestamp on</span>
+  </div>
+  <p class="hint" id="datestamp-msg"></p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Lens</h2>
+  <p class="hint">
+    Tap Get ranges, adjust sliders, then tap Send. Presets work without Get
+    ranges.
+  </p>
+  <div id="lens-msg" class="msg"></div>
+  <div class="lens-row">
+    <label>Zoom <span class="lens-value" id="zoom-value">—</span></label>
+    <div class="lens-slider-row">
+      <input
+        type="range"
+        id="lens-zoom"
+        class="lens-slider"
+        min="0"
+        max="1000"
+        step="1"
+        value="0"
+        disabled
+      />
+      <button
+        type="button"
+        class="btn btn-secondary lens-send"
+        id="btn-lens-send-zoom"
+        disabled
+      >
+        Send
+      </button>
+    </div>
+    <div class="lens-limits" id="zoom-limits">Tap Get ranges</div>
+  </div>
+  <div class="lens-row">
+    <label>Focus <span class="lens-value" id="focus-value">—</span></label>
+    <div class="lens-slider-row">
+      <input
+        type="range"
+        id="lens-focus"
+        class="lens-slider"
+        min="0"
+        max="1000"
+        step="1"
+        value="500"
+        disabled
+      />
+      <button
+        type="button"
+        class="btn btn-secondary lens-send"
+        id="btn-lens-send-focus"
+        disabled
+      >
+        Send
+      </button>
+    </div>
+    <div class="lens-limits" id="focus-limits">Tap Get ranges</div>
+  </div>
+  <div class="btn-row">
+    <button type="button" class="btn btn-secondary" id="btn-lens-ranges">
+      Get ranges
+    </button>
+    <button type="button" class="btn btn-secondary" id="btn-lens-refresh">
+      Refresh position
+    </button>
+  </div>
+  <div class="hdmi-toggle-row" id="af-row" style="margin-top: 0.6rem">
+    <span class="hdmi-label active" id="af-label-off">Manual focus</span>
+    <label class="switch" title="Auto focus refocuses when zoom changes">
+      <input type="checkbox" id="af-switch" />
+      <span class="slider"></span>
+    </label>
+    <span class="hdmi-label" id="af-label-on">Auto focus</span>
+  </div>
+  <p class="hint">
+    Zoom Send uses PTZ only — the camera may still refocus if auto focus is on.
+    Use presets for combined zoom/focus positions.
+  </p>
+  <h2 style="margin-top: 1rem">Presets</h2>
+  <p class="hint">
+    Presets recall zoom via PTZ only (this camera has no ONVIF preset slots).
+    Use Update selected after framing the shot.
+  </p>
+  <div class="btn-row" id="preset-list">
+    {% for p in lens_presets %}
+    <button
+      type="button"
+      class="btn btn-secondary preset-recall{% if p.id == active_preset_id %} active{% endif %}"
+      data-id="{{ p.id }}"
+      data-label="{{ p.label }}"
+      data-zoom="{{ p.zoom }}"
+      data-focus="{{ p.focus }}"
+      data-onvif-token="{{ p.onvifPresetToken or '' }}"
+    >
+      {{ p.label }}
+    </button>
+    {% endfor %}
+  </div>
+  <div id="preset-msg" class="msg"></div>
+  <div class="btn-row" style="margin-top: 0.6rem">
+    <input
+      id="preset-label"
+      type="text"
+      placeholder="Preset name"
+      style="width: 12rem; margin: 0"
+    />
+    <button type="button" class="btn btn-secondary" id="btn-preset-update">
+      Update selected
+    </button>
+    <button type="button" class="btn btn-secondary" id="btn-preset-save-new">
+      Save as new
+    </button>
+    <button type="button" class="btn btn-secondary" id="btn-preset-delete">
+      Delete selected
+    </button>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  (function () {
+    const enabledSw = document.getElementById('hdmi-enabled-switch');
+    const labelOff = document.getElementById('hdmi-label-off');
+    const labelOn = document.getElementById('hdmi-label-on');
+    const modeRow = document.getElementById('hdmi-mode-row');
+    const sw = document.getElementById('hdmi-switch');
+    const labelShowLive = document.getElementById('hdmi-label-show-live');
+    const hdmiMsg = document.getElementById('hdmi-msg');
+    const statusHdmi = document.getElementById('status-hdmi-mode');
+    let hdmiEnabled = {{ 'true' if hdmi_enabled else 'false' }};
+    let hdmiBusy = false;
+
+    function setModeControlsActive(on) {
+      if (modeRow) modeRow.style.opacity = on ? '1' : '0.45';
+      if (sw) sw.disabled = !on;
+      if (labelShowLive) labelShowLive.style.opacity = on ? '1' : '0.45';
+    }
+
+    function syncHdmiUi(live) {
+      if (!hdmiEnabled) {
+        if (labelOff) labelOff.classList.add('active');
+        if (labelOn) labelOn.classList.remove('active');
+        if (statusHdmi) statusHdmi.textContent = 'Off';
+        setModeControlsActive(false);
+        return;
+      }
+      if (labelOff) labelOff.classList.remove('active');
+      if (labelOn) labelOn.classList.add('active');
+      if (labelShowLive) labelShowLive.classList.toggle('active', live);
+      if (statusHdmi) statusHdmi.textContent = (live ? 'Live' : 'Delayed') + ' 4K';
+      setModeControlsActive(true);
+    }
+
+    function showHdmiMsg(text, ok) {
+      if (!hdmiMsg) return;
+      clearTimeout(hdmiMsg._alertHideTimer);
+      hdmiMsg.textContent = text || '';
+      if (!text) {
+        hdmiMsg.style.display = 'none';
+        return;
+      }
+      hdmiMsg.style.display = 'block';
+      hdmiMsg.style.color = ok ? '#86efac' : '#fca5a5';
+      scheduleAlertHide(hdmiMsg, () => showHdmiMsg('', true));
+    }
+
+    async function applyHdmiEnabled(on) {
+      if (hdmiBusy) return;
+      hdmiBusy = true;
+      if (enabledSw) enabledSw.disabled = true;
+      showHdmiMsg(on ? 'Starting HDMI…' : 'Stopping HDMI…', true);
+      const { status, data } = await postJson('/settings/hdmi/enabled', { enabled: on }, 30000);
+      hdmiBusy = false;
+      if (enabledSw) enabledSw.disabled = false;
+      if (status < 300 && data.ok) {
+        hdmiEnabled = on;
+        syncHdmiUi(sw && sw.checked);
+        showHdmiMsg(on ? 'HDMI on — applied' : 'HDMI off — applied', true);
+      } else {
+        if (enabledSw) enabledSw.checked = !on;
+        hdmiEnabled = enabledSw && enabledSw.checked;
+        syncHdmiUi(sw && sw.checked);
+        showHdmiMsg(data.error || 'Failed to update HDMI', false);
+      }
+    }
+
+    async function applyHdmiMode(live) {
+      if (!hdmiEnabled || hdmiBusy) return;
+      hdmiBusy = true;
+      if (sw) sw.disabled = true;
+      showHdmiMsg('Applying HDMI mode…', true);
+      const mode = live ? 'live' : 'delayed';
+      const { status, data } = await postJson('/settings/hdmi/mode', { mode }, 120000);
+      hdmiBusy = false;
+      if (sw) sw.disabled = false;
+      if (status < 300 && data.ok) {
+        syncHdmiUi(live);
+        showHdmiMsg(live ? 'Show Live — applied (replay buffer stopped)' : 'Delayed replay — applied', true);
+      } else {
+        if (sw) sw.checked = !live;
+        syncHdmiUi(sw && sw.checked);
+        showHdmiMsg(data.error || 'Failed to update HDMI mode', false);
+      }
+    }
+
+    if (enabledSw) {
+      enabledSw.addEventListener('change', () => {
+        const on = enabledSw.checked;
+        hdmiEnabled = on;
+        syncHdmiUi(sw && sw.checked);
+        applyHdmiEnabled(on);
+      });
+    }
+
+    if (sw) {
+      sw.addEventListener('change', () => {
+        const live = sw.checked;
+        syncHdmiUi(live);
+        applyHdmiMode(live);
+      });
+    }
+
+    const hdmiResRow = document.getElementById('hdmi-resolution-row');
+    const hdmiResMsg = document.getElementById('hdmi-resolution-msg');
+    const hdmiActiveRes = document.getElementById('hdmi-active-res');
+    let hdmiResBusy = false;
+
+    function showHdmiResMsg(text, ok) {
+      if (!hdmiResMsg) return;
+      clearTimeout(hdmiResMsg._alertHideTimer);
+      hdmiResMsg.textContent = text || '';
+      if (!text) {
+        hdmiResMsg.style.display = 'none';
+        return;
+      }
+      hdmiResMsg.style.display = 'block';
+      hdmiResMsg.style.color = ok ? '#86efac' : '#fca5a5';
+      scheduleAlertHide(hdmiResMsg, () => showHdmiResMsg('', true));
+    }
+
+    async function applyHdmiResolution(mode) {
+      if (hdmiResBusy) return;
+      hdmiResBusy = true;
+      if (hdmiResRow) hdmiResRow.style.opacity = '0.6';
+      showHdmiResMsg('Applying HDMI resolution…', true);
+      const { status, data } = await postJson('/settings/hdmi/resolution', { mode }, 60000);
+      hdmiResBusy = false;
+      if (hdmiResRow) hdmiResRow.style.opacity = '1';
+      if (status < 300 && data.ok) {
+        if (hdmiActiveRes && data.display) hdmiActiveRes.textContent = data.display;
+        const rebootNote = data.reboot_recommended
+          ? ' Reboot the Pi if the monitor mode did not change.'
+          : '';
+        showHdmiResMsg(
+          (mode === 'force_4k' ? 'Force 4K applied' : 'Negotiate best applied') + rebootNote,
+          true
+        );
+      } else {
+        showHdmiResMsg(data.error || 'Failed to update HDMI resolution', false);
+        const current = '{{ hdmi_resolution_mode }}';
+        const radio = document.querySelector(`input[name="hdmi_resolution"][value="${current}"]`);
+        if (radio) radio.checked = true;
+      }
+    }
+
+    if (hdmiResRow) {
+      hdmiResRow.querySelectorAll('input[name="hdmi_resolution"]').forEach((el) => {
+        el.addEventListener('change', () => {
+          if (el.checked) applyHdmiResolution(el.value);
+        });
+      });
+    }
+
+    syncHdmiUi(sw && sw.checked);
+  })();
+
+  (function () {
+    const sshSw = document.getElementById('ssh-enabled-switch');
+    const sshLabelOff = document.getElementById('ssh-label-off');
+    const sshLabelOn = document.getElementById('ssh-label-on');
+    const sshMsg = document.getElementById('ssh-msg');
+    const statusSsh = document.getElementById('status-ssh');
+    let sshEnabled = {{ 'true' if ssh_enabled else 'false' }};
+    let sshBusy = false;
+
+    function syncSshUi(on) {
+      if (sshLabelOff) sshLabelOff.classList.toggle('active', !on);
+      if (sshLabelOn) sshLabelOn.classList.toggle('active', on);
+      if (statusSsh) statusSsh.textContent = on ? 'On' : 'Off';
+    }
+
+    function showSshMsg(text, ok) {
+      if (!sshMsg) return;
+      clearTimeout(sshMsg._alertHideTimer);
+      sshMsg.textContent = text || '';
+      if (!text) {
+        sshMsg.style.display = 'none';
+        return;
+      }
+      sshMsg.style.display = 'block';
+      sshMsg.style.color = ok ? '#86efac' : '#fca5a5';
+      scheduleAlertHide(sshMsg, () => showSshMsg('', true));
+    }
+
+    async function applySshEnabled(on) {
+      if (sshBusy) return;
+      sshBusy = true;
+      if (sshSw) sshSw.disabled = true;
+      showSshMsg(on ? 'Starting SSH…' : 'Stopping SSH…', true);
+      const { status, data } = await postJson('/settings/ssh/enabled', { enabled: on }, 30000);
+      sshBusy = false;
+      if (sshSw) sshSw.disabled = false;
+      if (status < 300 && data.ok) {
+        sshEnabled = on;
+        syncSshUi(on);
+        showSshMsg(on ? 'SSH on — applied' : 'SSH off — applied', true);
+      } else {
+        if (sshSw) sshSw.checked = !on;
+        sshEnabled = sshSw && sshSw.checked;
+        syncSshUi(sshEnabled);
+        showSshMsg(data.error || 'Failed to update SSH', false);
+      }
+    }
+
+    if (sshSw) {
+      sshSw.addEventListener('change', () => {
+        const on = sshSw.checked;
+        sshEnabled = on;
+        syncSshUi(on);
+        applySshEnabled(on);
+      });
+    }
+    syncSshUi(sshEnabled);
+  })();
+
+  (function () {
+    const hostnameInput = document.getElementById('device-hostname');
+    const hostnameBtn = document.getElementById('btn-save-hostname');
+    const hostnameMsg = document.getElementById('hostname-msg');
+    const statusHostname = document.getElementById('status-hostname');
+    let hostnameBusy = false;
+
+    function showHostnameMsg(text, ok) {
+      if (!hostnameMsg) return;
+      clearTimeout(hostnameMsg._alertHideTimer);
+      hostnameMsg.textContent = text || '';
+      if (!text) {
+        hostnameMsg.style.display = 'none';
+        return;
+      }
+      hostnameMsg.style.display = 'block';
+      hostnameMsg.style.color = ok ? '#86efac' : '#fca5a5';
+      scheduleAlertHide(hostnameMsg, () => showHostnameMsg('', true));
+    }
+
+    async function applyHostname() {
+      if (hostnameBusy || !hostnameInput) return;
+      const hostname = hostnameInput.value.trim();
+      if (!hostname) {
+        showHostnameMsg('Hostname is required', false);
+        return;
+      }
+      hostnameBusy = true;
+      if (hostnameBtn) hostnameBtn.disabled = true;
+      showHostnameMsg('Applying hostname…', true);
+      const { status, data } = await postJson('/settings/hostname', { hostname }, 30000);
+      hostnameBusy = false;
+      if (hostnameBtn) hostnameBtn.disabled = false;
+      if (status < 300 && data.ok) {
+        const applied = data.hostname || hostname;
+        hostnameInput.value = applied;
+        if (statusHostname) statusHostname.textContent = applied;
+        showHostnameMsg('Hostname applied — use http://' + applied + ':8080 when mDNS works', true);
+      } else {
+        const err = (data.errors && data.errors.join(' ')) || data.error || 'Failed to update hostname';
+        showHostnameMsg(err, false);
+      }
+    }
+
+    if (hostnameBtn) {
+      hostnameBtn.addEventListener('click', () => applyHostname());
+    }
+  })();
+
+  async function getJson(url, timeoutMs) {
+    const ctl = new AbortController();
+    const timer = timeoutMs ? setTimeout(() => ctl.abort(), timeoutMs) : null;
+    try {
+      const r = await fetch(url, {
+        method: 'GET',
+        credentials: 'same-origin',
+        signal: ctl.signal
+      });
+      const data = await r.json().catch(() => ({}));
+      if (r.status === 401 && data.error === 'authentication_required') {
+        window.location.href = '/settings/login?expired=1';
+        return { status: r.status, data };
+      }
+      return { status: r.status, data };
+    } catch (e) {
+      if (e && e.name === 'AbortError') {
+        return { status: 504, data: { error: 'timeout' } };
+      }
+      return { status: 0, data: { error: 'network_error' } };
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  async function postJson(url, body, timeoutMs) {
+    const ctl = new AbortController();
+    const timer = timeoutMs ? setTimeout(() => ctl.abort(), timeoutMs) : null;
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(body || {}),
+        signal: ctl.signal
+      });
+      const data = await r.json().catch(() => ({}));
+      if (r.status === 401 && data.error === 'authentication_required') {
+        window.location.href = '/settings/login?expired=1';
+        return { status: r.status, data };
+      }
+      return { status: r.status, data };
+    } catch (e) {
+      if (e && e.name === 'AbortError') {
+        return { status: 504, data: { error: 'request_timeout' } };
+      }
+      return { status: 0, data: { error: 'network_error' } };
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  const CAM_ERROR_LABELS = {
+    configure_timeout: 'Timed out (up to 3 min). Check camera Ethernet, power, and ONVIF on port 80.',
+    onvif_unreachable: 'Camera not responding on ONVIF — check IP, power, and Ethernet cable.',
+    authentication_failed: 'Wrong camera username or password. Use the admin credentials set privately in the camera web UI before assign.',
+    no_valid_profile: 'No valid stream profile — camera may not support required encoding.',
+    network_error: 'Network error — check Wi‑Fi to the Pi and try again.',
+    missing_fields: 'Enter camera IP, username, and password.',
+    wrong_subnet: 'Wrong network for this mode.'
+  };
+
+  const ETH_MODE = '{{ eth_mode }}';
+  const IS_DIRECT = ETH_MODE === 'direct';
+
+  const ALERT_HIDE_MS = 4000;
+
+  function scheduleAlertHide(el, hideFn) {
+    if (!el) return;
+    clearTimeout(el._alertHideTimer);
+    el._alertHideTimer = setTimeout(hideFn, ALERT_HIDE_MS);
+  }
+
+  function formatCamError(err, data) {
+    if (data && data.hint) {
+      const label = CAM_ERROR_LABELS[err];
+      return label ? `${label} ${data.hint}` : data.hint;
+    }
+    return CAM_ERROR_LABELS[err] || err || 'Assign failed';
+  }
+
+  function updateDirectIpDisplay(ip, hintText) {
+    if (!IS_DIRECT) return;
+    const defaultHint =
+      'No camera lease yet — connect PoE camera to Pi Ethernet, then <strong>Refresh camera</strong>.';
+    for (const id of ['cam-ip-direct', 'cam-swap-ip-direct']) {
+      const el = document.getElementById(id);
+      if (el) {
+        if (hintText) {
+          el.textContent = hintText;
+        } else {
+          el.innerHTML = ip ? `Discovered: <strong>${ip}</strong>` : defaultHint;
+        }
+      }
+    }
+  }
+
+  function showDiscoverResult(data, { silent = false } = {}) {
+    if (data.cameras && data.cameras.length) {
+      showCamResults(data.cameras);
+      const c = data.cameras[0];
+      showMsg(
+        data.cameras.length === 1
+          ? `Found: ${c.hostname} @ ${c.ip}`
+          : `Found ${data.cameras.length} cameras — select one`,
+        true
+      );
+      return;
+    }
+    showCamResults([]);
+    updateDirectIpDisplay('', data.hint || '');
+    if (data.error) {
+      showMsg(data.error, false);
+      return;
+    }
+    const msg =
+      data.hint ||
+      (IS_DIRECT
+        ? 'No camera on Pi Ethernet yet. Connect via PoE injector, then Refresh.'
+        : 'No camera found on LAN');
+    if (silent && IS_DIRECT) {
+      return;
+    }
+    showMsg(msg, !data.error);
+  }
+
+  async function runDiscover(options = {}) {
+    const { silent = false } = options;
+    if (!silent) showMsg('Searching…', true);
+    const { status, data } = await postJson('/api/camera/discover', {}, 45000);
+    if (status === 0) {
+      showMsg('Network error — check Wi‑Fi to the Pi and try again.', false);
+      return;
+    }
+    showDiscoverResult(data, { silent });
+  }
+
+  function swapModeActive() {
+    const panel = document.getElementById('cam-swap-panel');
+    return panel && panel.style.display !== 'none';
+  }
+
+  function activeCamFields() {
+    if (swapModeActive()) {
+      return {
+        ip: document.getElementById('cam-swap-ip'),
+        user: document.getElementById('cam-swap-user'),
+        pass: document.getElementById('cam-swap-pass'),
+        onvifPort: document.getElementById('cam-swap-onvif-port')
+      };
+    }
+    return {
+      ip: document.getElementById('cam-ip'),
+      user: document.getElementById('cam-user'),
+      pass: document.getElementById('cam-pass'),
+      onvifPort: document.getElementById('cam-onvif-port')
+    };
+  }
+
+  function assignPayload() {
+    const f = activeCamFields();
+    return {
+      ip: f.ip.value.trim(),
+      currentUsername: f.user.value.trim(),
+      currentPassword: f.pass.value,
+      rtspPort: 554,
+      onvifPort: parseInt(f.onvifPort.value, 10) || 80
+    };
+  }
+
+  function testLoginPayload() {
+    const p = assignPayload();
+    return {
+      ip: p.ip,
+      currentUsername: p.currentUsername,
+      currentPassword: p.currentPassword,
+      onvifPort: p.onvifPort
+    };
+  }
+
+  function showMsg(text, ok) {
+    const el = document.getElementById('cam-msg');
+    if (!el) return;
+    clearTimeout(el._alertHideTimer);
+    el.textContent = text || '';
+    if (!text) {
+      el.classList.remove('show');
+      return;
+    }
+    el.style.background = ok ? '#14532d' : '#7f1d1d';
+    el.classList.add('show');
+    scheduleAlertHide(el, () => showMsg('', true));
+  }
+
+  let discoveredCameras = [];
+
+  function resultsBox() {
+    if (swapModeActive()) return document.getElementById('cam-swap-results');
+    return document.getElementById('cam-results');
+  }
+
+  function showCamResults(cameras) {
+    discoveredCameras = cameras || [];
+    const box = resultsBox();
+    if (!box) return;
+    if (!discoveredCameras.length) {
+      box.style.display = 'none';
+      box.innerHTML = '';
+      return;
+    }
+    box.style.display = 'block';
+    box.innerHTML = '<p class="hint" style="margin-top:0;">Select a camera:</p>' +
+      discoveredCameras.map((c, i) => {
+        const extra = c.discoveredName
+          ? ` <span class="hint">(camera reports: ${c.discoveredName})</span>` : '';
+        return `<label><input type="radio" name="cam_pick" value="${i}" ${i === 0 ? 'checked' : ''} /> ` +
+          `${c.hostname} @ ${c.ip}${extra}</label>`;
+      }).join('');
+    box.querySelectorAll('input[name=cam_pick]').forEach(r => {
+      r.onchange = () => {
+        const c = discoveredCameras[parseInt(r.value, 10)];
+        const f = activeCamFields();
+        f.ip.value = c.ip || '';
+        f.onvifPort.value = c.onvifPort || 80;
+        updateDirectIpDisplay(c.ip || '');
+      };
+    });
+    const first = discoveredCameras[0];
+    const f = activeCamFields();
+    f.ip.value = first.ip || '';
+    f.onvifPort.value = first.onvifPort || 80;
+    updateDirectIpDisplay(first.ip || '');
+  }
+
+  const btnDiscover = document.getElementById('btn-discover');
+  if (btnDiscover) btnDiscover.onclick = () => runDiscover({ silent: false });
+
+  const btnDiscoverSwap = document.getElementById('btn-discover-swap');
+  if (btnDiscoverSwap) {
+    btnDiscoverSwap.onclick = async () => {
+      const panel = document.getElementById('cam-swap-panel');
+      if (panel) panel.style.display = 'block';
+      await runDiscover({ silent: false });
+    };
+  }
+
+  const btnCancelSwap = document.getElementById('btn-cancel-swap');
+  if (btnCancelSwap) {
+    btnCancelSwap.onclick = () => {
+      const panel = document.getElementById('cam-swap-panel');
+      if (panel) panel.style.display = 'none';
+      showCamResults([]);
+      showMsg('', true);
+      document.getElementById('cam-msg').classList.remove('show');
+    };
+  }
+
+  const btnAssignSwap = document.getElementById('btn-assign-swap');
+  if (btnAssignSwap) btnAssignSwap.onclick = assignCamera;
+
+  const btnTestSwap = document.getElementById('btn-test-swap');
+  if (btnTestSwap) {
+    btnTestSwap.onclick = async () => {
+      const body = testLoginPayload();
+      if (!body.currentUsername || !body.currentPassword) {
+        showMsg('Enter camera username and password.', false);
+        return;
+      }
+      if (!body.ip) {
+        showMsg(IS_DIRECT ? 'Refresh camera to discover the Pi DHCP lease.' : 'Enter camera IP, username, and password.', false);
+        return;
+      }
+      showMsg('Testing camera login…', true);
+      const { status, data } = await postJson('/api/camera/test', body, 35000);
+      const ok = status < 300 && data.ok;
+      showMsg(
+        ok ? `Login OK (${data.profileCount || 0} ONVIF profile(s))` : formatCamError(data.error, data),
+        ok
+      );
+    };
+  }
+
+  {% if eth_mode == 'direct' and not camera_assigned %}
+  runDiscover({ silent: true });
+  {% endif %}
+
+  async function clearCamera() {
+    if (!confirm('Clear saved camera settings? Video ingest will stop until you assign again.')) return;
+    showMsg('Clearing camera settings…', true);
+    const { status, data } = await postJson('/api/camera/clear', {});
+    if (status < 300 && data.ok) {
+      showMsg('Camera settings cleared — reloading…', true);
+      location.reload();
+    } else {
+      showMsg(data.error || 'Clear failed', false);
+    }
+  }
+
+  document.querySelectorAll('#btn-clear-cam').forEach(btn => { btn.onclick = clearCamera });
+
+  async function assignCamera() {
+    const body = assignPayload();
+    if (!body.currentUsername || !body.currentPassword) {
+      showMsg('Enter camera username and password.', false);
+      return;
+    }
+    if (!body.ip) {
+      showMsg(
+        IS_DIRECT
+          ? 'Refresh camera to discover the Pi DHCP lease, or connect the camera to PoE Ethernet.'
+          : 'Enter camera IP, username, and password.',
+        false
+      );
+      return;
+    }
+    showMsg('Assigning camera… creating sportassist user and configuring streams (may take 1–2 minutes)', true);
+    const { status, data } = await postJson('/api/camera/assign', body, 190000);
+    if (status < 300 && data.ok) {
+      showMsg('Camera assigned — reloading…', true);
+      location.reload();
+    } else {
+      showMsg(formatCamError(data.error, data), false);
+    }
+  }
+
+  const btnAssign = document.getElementById('btn-assign-cam');
+  if (btnAssign) btnAssign.onclick = assignCamera;
+
+  const btnTest = document.getElementById('btn-test-cam');
+  if (btnTest) {
+    btnTest.onclick = async () => {
+      const body = testLoginPayload();
+      if (!body.currentUsername || !body.currentPassword) {
+        showMsg('Enter camera username and password.', false);
+        return;
+      }
+      if (!body.ip) {
+        showMsg(IS_DIRECT ? 'Refresh camera to discover the Pi DHCP lease.' : 'Enter camera IP, username, and password.', false);
+        return;
+      }
+      showMsg('Testing camera login…', true);
+      const { status, data } = await postJson('/api/camera/test', body, 35000);
+      const ok = status < 300 && data.ok;
+      showMsg(
+        ok ? `Login OK (${data.profileCount || 0} ONVIF profile(s))` : formatCamError(data.error, data),
+        ok
+      );
+    };
+  }
+
+  const btnConfigure = document.getElementById('btn-configure');
+  if (btnConfigure) {
+    btnConfigure.onclick = async () => {
+      const body = {
+        ip: document.getElementById('cam-ip').value,
+        username: document.getElementById('cam-user').value,
+        password: document.getElementById('cam-pass').value,
+        rtspPort: 554,
+        onvifPort: parseInt(document.getElementById('cam-onvif-port').value, 10) || 80
+      };
+      showMsg('Re-configuring streams… (may take 1–2 minutes)', true);
+      const { data } = await postJson('/api/camera/streams', body, 190000);
+      showMsg(data.configured ? 'Streams reconfigured' : formatCamError(data.error, data), !!data.configured);
+      if (data.configured && data.main) {
+        const m = data.main;
+        document.getElementById('cam-profile').textContent =
+          'Configured: ' + (m.width || '') + '×' + (m.height || '') + ' @ ' + (m.fps || '') + ' fps ' + (m.codec || '');
+      }
+    };
+  }
+
+  const lensZoom = document.getElementById('lens-zoom');
+  const lensFocus = document.getElementById('lens-focus');
+  const btnLensSendZoom = document.getElementById('btn-lens-send-zoom');
+  const btnLensSendFocus = document.getElementById('btn-lens-send-focus');
+  const zoomValue = document.getElementById('zoom-value');
+  const focusValue = document.getElementById('focus-value');
+  const zoomLimits = document.getElementById('zoom-limits');
+  const focusLimits = document.getElementById('focus-limits');
+  const lensMsg = document.getElementById('lens-msg');
+  let lensBounds = { zoomMin: 0, zoomMax: 1, focusMin: 0, focusMax: 1 };
+  let lensRangesReady = false;
+  let lensBusy = false;
+  let lensPending = null;
+
+  const LENS_ERROR_LABELS = {
+    request_timeout: 'Lens move timed out — wait a few seconds before trying again.',
+    lens_timeout: 'Lens move timed out on the Pi — wait before trying again.',
+    lens_busy: 'Lens is busy with another move — wait a few seconds.',
+    focus_mode_manual_failed: 'Could not switch to manual focus on the camera.',
+    focus_mode_auto_failed: 'Could not switch to auto focus on the camera.',
+  };
+
+  function formatLensError(err) {
+    return LENS_ERROR_LABELS[err] || err || 'Lens command failed';
+  }
+
+  function showLensMsg(text, ok) {
+    if (!lensMsg) return;
+    clearTimeout(lensMsg._alertHideTimer);
+    lensMsg.textContent = text || '';
+    if (!text) {
+      lensMsg.classList.remove('show');
+      return;
+    }
+    lensMsg.style.background = ok ? '#14532d' : '#7f1d1d';
+    lensMsg.classList.add('show');
+    scheduleAlertHide(lensMsg, () => showLensMsg('', true));
+  }
+
+  function pctInRange(value, min, max) {
+    if (max <= min) return 0;
+    return Math.round(((value - min) / (max - min)) * 100);
+  }
+
+  function sliderToValue(sliderVal, min, max) {
+    return min + (Number(sliderVal) / 1000) * (max - min);
+  }
+
+  function valueToSlider(value, min, max) {
+    if (max <= min) return 0;
+    return Math.round(((value - min) / (max - min)) * 1000);
+  }
+
+  function formatLimit(value) {
+    return Number(value).toFixed(2);
+  }
+
+  function updateLensLimitLabels() {
+    if (zoomLimits) {
+      zoomLimits.textContent = lensRangesReady
+        ? 'Wide (' + formatLimit(lensBounds.zoomMin) + ') — Tele (' + formatLimit(lensBounds.zoomMax) + ')'
+        : 'Tap Get ranges';
+    }
+    if (focusLimits) {
+      focusLimits.textContent = lensRangesReady
+        ? 'Near (' + formatLimit(lensBounds.focusMin) + ') — Far (' + formatLimit(lensBounds.focusMax) + ')'
+        : 'Tap Get ranges';
+    }
+  }
+
+  function applyLensBounds(data) {
+    lensBounds = {
+      zoomMin: data.zoomMin ?? 0,
+      zoomMax: data.zoomMax ?? 1,
+      focusMin: data.focusMin ?? 0,
+      focusMax: data.focusMax ?? 1,
+    };
+    lensRangesReady = true;
+    updateLensLimitLabels();
+  }
+
+  function setLensSendEnabled(on) {
+    if (btnLensSendZoom) btnLensSendZoom.disabled = !on;
+    if (btnLensSendFocus) btnLensSendFocus.disabled = !on;
+  }
+
+  function syncLensSliders(data, opts) {
+    const updatePosition = !opts || opts.updatePosition !== false;
+    applyLensBounds(data);
+    if (lensZoom) {
+      lensZoom.disabled = false;
+      if (updatePosition) {
+        lensZoom.value = valueToSlider(data.zoom, lensBounds.zoomMin, lensBounds.zoomMax);
+      }
+    }
+    if (lensFocus) {
+      lensFocus.disabled = false;
+      if (updatePosition) {
+        lensFocus.value = valueToSlider(data.focus, lensBounds.focusMin, lensBounds.focusMax);
+      }
+    }
+    setLensSendEnabled(true);
+    if (zoomValue) {
+      const zoom = lensZoom
+        ? sliderToValue(lensZoom.value, lensBounds.zoomMin, lensBounds.zoomMax)
+        : data.zoom;
+      zoomValue.textContent = pctInRange(zoom, lensBounds.zoomMin, lensBounds.zoomMax) + '%';
+    }
+    if (focusValue) {
+      const focus = lensFocus
+        ? sliderToValue(lensFocus.value, lensBounds.focusMin, lensBounds.focusMax)
+        : data.focus;
+      focusValue.textContent = pctInRange(focus, lensBounds.focusMin, lensBounds.focusMax) + '%';
+    }
+  }
+
+  async function fetchLensRanges(opts) {
+    const quiet = opts && opts.quiet;
+    if (!quiet) showLensMsg('Reading ranges from camera…', true);
+    const { status, data } = await getJson('/settings/lens/position', 15000);
+    if (status < 300 && data.ok) {
+      syncLensSliders(data, { updatePosition: true });
+      if (!quiet) {
+        showLensMsg(
+          'Ranges loaded — zoom ' + formatLimit(lensBounds.zoomMin) + '–' + formatLimit(lensBounds.zoomMax) +
+          ', focus ' + formatLimit(lensBounds.focusMin) + '–' + formatLimit(lensBounds.focusMax),
+          true
+        );
+      }
+      return true;
+    }
+    if (!quiet) showLensMsg(data.error || 'Could not read lens ranges', false);
+    return false;
+  }
+
+  async function refreshLensPosition() {
+    if (!lensRangesReady) {
+      return fetchLensRanges({ quiet: true });
+    }
+    const { status, data } = await getJson('/settings/lens/position', 15000);
+    if (status < 300 && data.ok) {
+      syncLensSliders(data, { updatePosition: true });
+      showLensMsg('Position refreshed', true);
+      return true;
+    }
+    showLensMsg(data.error || 'Could not read lens position', false);
+    return false;
+  }
+
+  async function applyLensFromSliders(changed) {
+    if (!lensRangesReady || !lensZoom || !lensFocus) {
+      showLensMsg('Tap Get ranges first', false);
+      return;
+    }
+    if (lensBusy) {
+      lensPending = changed;
+      return;
+    }
+    lensBusy = true;
+    if (btnLensSendZoom) btnLensSendZoom.disabled = true;
+    if (btnLensSendFocus) btnLensSendFocus.disabled = true;
+    const zoom = sliderToValue(lensZoom.value, lensBounds.zoomMin, lensBounds.zoomMax);
+    const focus = sliderToValue(lensFocus.value, lensBounds.focusMin, lensBounds.focusMax);
+    if (zoomValue) {
+      zoomValue.textContent = pctInRange(zoom, lensBounds.zoomMin, lensBounds.zoomMax) + '%';
+    }
+    if (focusValue) {
+      focusValue.textContent = pctInRange(focus, lensBounds.focusMin, lensBounds.focusMax) + '%';
+    }
+    const body = changed === 'zoom' ? { zoom } : changed === 'focus' ? { focus } : { zoom, focus };
+    const { status, data } = await postJson('/settings/lens/position', body, 55000);
+    lensBusy = false;
+    setLensSendEnabled(lensRangesReady);
+    if (status < 300 && data.ok) {
+      applyLensBounds(data);
+      if (changed === 'zoom' && lensZoom) {
+        lensZoom.value = valueToSlider(
+          data.zoom ?? zoom,
+          lensBounds.zoomMin,
+          lensBounds.zoomMax
+        );
+        if (zoomValue) {
+          zoomValue.textContent = pctInRange(data.zoom ?? zoom, lensBounds.zoomMin, lensBounds.zoomMax) + '%';
+        }
+        showLensMsg('Zoom sent', true);
+        if (typeof data.autofocus === 'boolean') syncAfUi(data.autofocus);
+      } else if (changed === 'focus' && lensFocus) {
+        lensFocus.value = valueToSlider(
+          data.focus ?? focus,
+          lensBounds.focusMin,
+          lensBounds.focusMax
+        );
+        if (focusValue) {
+          focusValue.textContent = pctInRange(data.focus ?? focus, lensBounds.focusMin, lensBounds.focusMax) + '%';
+        }
+        showLensMsg('Focus sent', true);
+        if (typeof data.autofocus === 'boolean') syncAfUi(data.autofocus);
+      }
+    } else {
+      showLensMsg(formatLensError(data.error), false);
+      await refreshLensPosition();
+    }
+    if (lensPending) {
+      const pending = lensPending;
+      lensPending = null;
+      applyLensFromSliders(pending);
+    }
+  }
+
+  function bindLensSlider(slider, axis) {
+    if (!slider) return;
+    slider.addEventListener('input', () => {
+      const min = axis === 'zoom' ? lensBounds.zoomMin : lensBounds.focusMin;
+      const max = axis === 'zoom' ? lensBounds.zoomMax : lensBounds.focusMax;
+      const value = sliderToValue(slider.value, min, max);
+      const label = axis === 'zoom' ? zoomValue : focusValue;
+      if (label) label.textContent = pctInRange(value, min, max) + '%';
+    });
+  }
+
+  bindLensSlider(lensZoom, 'zoom');
+  bindLensSlider(lensFocus, 'focus');
+
+  if (btnLensSendZoom) {
+    btnLensSendZoom.onclick = () => applyLensFromSliders('zoom');
+  }
+  if (btnLensSendFocus) {
+    btnLensSendFocus.onclick = () => applyLensFromSliders('focus');
+  }
+
+  const btnLensRanges = document.getElementById('btn-lens-ranges');
+  if (btnLensRanges) btnLensRanges.onclick = () => fetchLensRanges();
+
+  const btnLensRefresh = document.getElementById('btn-lens-refresh');
+  if (btnLensRefresh) btnLensRefresh.onclick = () => refreshLensPosition();
+
+  const afSwitch = document.getElementById('af-switch');
+  const afLabelOff = document.getElementById('af-label-off');
+  const afLabelOn = document.getElementById('af-label-on');
+  let afBusy = false;
+
+  function syncAfUi(enabled) {
+    if (afSwitch) afSwitch.checked = !!enabled;
+    if (afLabelOff) afLabelOff.classList.toggle('active', !enabled);
+    if (afLabelOn) afLabelOn.classList.toggle('active', !!enabled);
+  }
+
+  async function loadAfState() {
+    const { status, data } = await getJson('/settings/lens/position', 15000);
+    if (status < 300 && data.ok && typeof data.autofocus === 'boolean') {
+      syncAfUi(data.autofocus);
+    }
+  }
+
+  if (afSwitch) {
+    afSwitch.onchange = async () => {
+      if (afBusy) return;
+      afBusy = true;
+      const enabled = afSwitch.checked;
+      const { status, data } = await postJson('/settings/lens/autofocus', { enabled }, 55000);
+      afBusy = false;
+      if (status < 300 && data.ok) {
+        syncAfUi(!!data.autofocus);
+        showLensMsg(enabled ? 'Auto focus on' : 'Manual focus — zoom will not refocus', true);
+      } else {
+        syncAfUi(!enabled);
+        showLensMsg(formatLensError(data.error), false);
+      }
+    };
+  }
+
+  const datestampSwitch = document.getElementById('datestamp-switch');
+  const datestampLabelOff = document.getElementById('datestamp-label-off');
+  const datestampLabelOn = document.getElementById('datestamp-label-on');
+  const datestampMsg = document.getElementById('datestamp-msg');
+  let datestampBusy = false;
+  let datestampSupported = false;
+
+  function syncDatestampUi(enabled) {
+    if (datestampSwitch) datestampSwitch.checked = !!enabled;
+    if (datestampLabelOff) datestampLabelOff.classList.toggle('active', !enabled);
+    if (datestampLabelOn) datestampLabelOn.classList.toggle('active', !!enabled);
+  }
+
+  async function loadDatestampState() {
+    if (!datestampSwitch) return;
+    const { status, data } = await getJson('/settings/camera/datestamp', 15000);
+    if (status >= 300 || !data.ok) {
+      if (datestampMsg) datestampMsg.textContent = data.error || 'Could not read datestamp state';
+      return;
+    }
+    datestampSupported = !!data.supported;
+    if (!data.supported) {
+      datestampSwitch.disabled = true;
+      if (datestampMsg) datestampMsg.textContent = 'This camera does not expose ONVIF datestamp control.';
+      return;
+    }
+    datestampSwitch.disabled = false;
+    syncDatestampUi(!!data.enabled);
+    if (datestampMsg) datestampMsg.textContent = '';
+  }
+
+  if (datestampSwitch) {
+    datestampSwitch.onchange = async () => {
+      if (datestampBusy || !datestampSupported) return;
+      datestampBusy = true;
+      const enabled = datestampSwitch.checked;
+      const { status, data } = await postJson('/settings/camera/datestamp', { enabled });
+      datestampBusy = false;
+      if (status < 300 && data.ok) {
+        syncDatestampUi(!!data.enabled);
+        if (datestampMsg) {
+          datestampMsg.textContent = enabled ? 'Datestamp on' : 'Datestamp off';
+        }
+      } else {
+        syncDatestampUi(!enabled);
+        if (datestampMsg) {
+          datestampMsg.textContent = data.error || 'Could not change datestamp';
+        }
+      }
+    };
+  }
+
+  {% if camera_assigned %}
+  loadDatestampState();
+  {% endif %}
+  loadAfState();
+
+  updateLensLimitLabels();
+
+  let selectedPresetId = '{{ active_preset_id }}';
+  let presetBusy = false;
+
+  function showPresetMsg(text, ok) {
+    const el = document.getElementById('preset-msg');
+    if (!el) return;
+    clearTimeout(el._alertHideTimer);
+    el.textContent = text || '';
+    if (!text) {
+      el.classList.remove('show');
+      return;
+    }
+    el.style.background = ok ? '#14532d' : '#7f1d1d';
+    el.classList.add('show');
+    scheduleAlertHide(el, () => showPresetMsg('', true));
+  }
+
+  function setSelectedPreset(id) {
+    selectedPresetId = id || '';
+    document.querySelectorAll('.preset-recall').forEach(b => {
+      b.classList.toggle('active', b.dataset.id === id);
+    });
+    const labelInput = document.getElementById('preset-label');
+    const btn = id && document.querySelector('.preset-recall[data-id="' + id + '"]');
+    if (labelInput) {
+      labelInput.value = btn ? (btn.dataset.label || btn.textContent.trim()) : '';
+    }
+  }
+
+  document.querySelectorAll('.preset-recall').forEach(btn => {
+    btn.onclick = async () => {
+      if (presetBusy || lensBusy) {
+        showPresetMsg('Lens is busy — wait a few seconds', false);
+        return;
+      }
+      presetBusy = true;
+      setSelectedPreset(btn.dataset.id);
+      try {
+      const { status, data } = await postJson('/settings/lens/preset/recall', { id: btn.dataset.id }, 55000);
+      if (status < 300 && data.ok) {
+        const via = data.usedGotoPreset
+          ? ' (camera preset)'
+          : (data.zoomOnly ? ' (zoom only)' : (data.manualFallback ? ' (manual)' : ''));
+        showPresetMsg('Lens moved to ' + (btn.dataset.label || btn.textContent.trim()) + via, true);
+        // Match sliders to saved preset targets only — never read/send lens position here.
+        const sliderData = {
+          zoom: data.zoom ?? parseFloat(btn.dataset.zoom || '0'),
+          focus: data.focus ?? parseFloat(btn.dataset.focus || '0.5'),
+          zoomMin: data.zoomMin ?? lensBounds.zoomMin,
+          zoomMax: data.zoomMax ?? lensBounds.zoomMax,
+          focusMin: data.focusMin ?? lensBounds.focusMin,
+          focusMax: data.focusMax ?? lensBounds.focusMax,
+        };
+        syncLensSliders(sliderData, { updatePosition: true });
+        if (typeof data.autofocus === 'boolean') syncAfUi(data.autofocus);
+      } else {
+        showPresetMsg(formatLensError(data.error), false);
+      }
+      } finally {
+        presetBusy = false;
+      }
+    };
+  });
+
+  function formatPresetPosition(data) {
+    if (data.zoom == null && data.focus == null) return '';
+    const z = data.zoom != null ? Number(data.zoom).toFixed(2) : '?';
+    const f = data.focus != null ? Number(data.focus).toFixed(2) : '?';
+    return ' (zoom ' + z + ', focus ' + f + ')';
+  }
+
+  document.getElementById('btn-preset-update').onclick = async () => {
+    if (!selectedPresetId) {
+      showPresetMsg('Select a preset to update', false);
+      return;
+    }
+    const labelInput = document.getElementById('preset-label');
+    const label = labelInput.value.trim();
+    const btn = document.querySelector('.preset-recall[data-id="' + selectedPresetId + '"]');
+    const body = {
+      id: selectedPresetId,
+      label: label || (btn?.dataset.label || selectedPresetId),
+    };
+    showPresetMsg('Saving camera preset…', true);
+    const { status, data } = await postJson('/settings/lens/preset/save', body, 30000);
+    if (status < 300 && data.ok) {
+      const tokenNote = data.onvifPresetToken ? ' · camera token ' + data.onvifPresetToken : '';
+      showPresetMsg('Updated ' + body.label + formatPresetPosition(data) + tokenNote, true);
+      location.reload();
+    } else {
+      showPresetMsg(data.error || 'Update failed', false);
+    }
+  };
+
+  document.getElementById('btn-preset-save-new').onclick = async () => {
+    const label = document.getElementById('preset-label').value.trim();
+    if (!label) {
+      showPresetMsg('Enter a name for the new preset', false);
+      return;
+    }
+    showPresetMsg('Saving camera preset…', true);
+    const { status, data } = await postJson('/settings/lens/preset/save', { label }, 30000);
+    if (status < 300 && data.ok) {
+      const tokenNote = data.onvifPresetToken ? ' · camera token ' + data.onvifPresetToken : '';
+      showPresetMsg('Saved ' + label + formatPresetPosition(data) + tokenNote, true);
+      location.reload();
+    } else {
+      showPresetMsg(data.error || 'Save failed', false);
+    }
+  };
+
+  document.getElementById('btn-preset-delete').onclick = async () => {
+    if (!selectedPresetId) {
+      showPresetMsg('Select a preset to delete', false);
+      return;
+    }
+    const btn = document.querySelector('.preset-recall[data-id="' + selectedPresetId + '"]');
+    const name = btn ? (btn.dataset.label || btn.textContent.trim()) : selectedPresetId;
+    if (!confirm('Delete preset "' + name + '"?')) return;
+    const { status, data } = await postJson('/settings/lens/preset/delete', { id: selectedPresetId });
+    if (status < 300 && data.ok) {
+      location.reload();
+    } else {
+      showPresetMsg(data.error || 'Delete failed', false);
+    }
+  };
+
+  if (selectedPresetId) setSelectedPreset(selectedPresetId);
+
+  // Keep settings session alive while configuring camera (default timeout 5 min idle).
+  setInterval(() => {
+    fetch('/api/camera', { credentials: 'same-origin' }).catch(() => {});
+  }, 120000);
+</script>
+{% endblock %}

@@ -1,0 +1,22 @@
+[Unit]
+Description=Sport Assist HDMI idle logo (no video)
+After=ldrs-hdmi-apply.service
+Before=ldrs-hdmi-delay.service ldrs-hdmi-live.service
+
+[Service]
+Type=simple
+User=sportassist
+Group=sportassist
+Environment=HOME=/home/sportassist
+Environment=DISPLAY=:0
+Environment=XDG_RUNTIME_DIR=/run/vlc-runtime
+RuntimeDirectory=vlc-runtime
+RuntimeDirectoryMode=0700
+LogsDirectory=sportassist
+LogsDirectoryMode=0755
+ExecStart=/usr/local/bin/ldrs-hdmi-idle.sh
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

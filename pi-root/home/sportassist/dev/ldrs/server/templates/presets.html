@@ -1,0 +1,145 @@
+{% extends "base.html" %} {% block title %}Lens presets — Sport Assist{%
+endblock %} {% block head %}
+<style>
+  .presets-page {
+    max-width: 360px;
+    margin: 0 auto;
+  }
+  .presets-page h1 {
+    text-align: center;
+    margin-bottom: 1.2rem;
+  }
+  .preset-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+  .preset-btn {
+    appearance: none;
+    width: 100%;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 0.75rem;
+    padding: 1rem 1.1rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    background: #334155;
+    color: #e2e8f0;
+    transition:
+      background 0.15s,
+      border-color 0.15s;
+  }
+  .preset-btn:hover:not(:disabled) {
+    background: #475569;
+  }
+  .preset-btn:disabled {
+    opacity: 0.5;
+    cursor: wait;
+  }
+  .preset-btn.active {
+    background: linear-gradient(to right, #22c55e, #16a34a);
+    color: #ecfdf5;
+    border-color: #16a34a;
+  }
+  .preset-msg {
+    margin-top: 1rem;
+    padding: 0.65rem 0.8rem;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    text-align: center;
+    display: none;
+  }
+  .preset-msg.err {
+    display: block;
+    background: #7f1d1d;
+    color: #fecaca;
+  }
+  .preset-empty {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.9rem;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="presets-page">
+  <div class="card">
+    <h1>Presets</h1>
+    {% if presets %}
+    <div class="preset-col" id="preset-col">
+      {% for p in presets %}
+      <button
+        type="button"
+        class="preset-btn{% if p.id == active_preset_id %} active{% endif %}"
+        data-id="{{ p.id }}"
+        data-label="{{ p.label }}"
+      >
+        {{ p.label }}
+      </button>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="preset-empty">No presets configured.</p>
+    {% endif %}
+    <div id="preset-msg" class="preset-msg" aria-live="polite"></div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  (function () {
+    const msg = document.getElementById("preset-msg");
+    let busy = false;
+
+    function clearMsg() {
+      if (!msg) return;
+      msg.textContent = "";
+      msg.className = "preset-msg";
+    }
+
+    function showError(text) {
+      if (!msg || !text) return;
+      msg.textContent = text;
+      msg.className = "preset-msg err";
+    }
+
+    function setActive(id) {
+      document.querySelectorAll(".preset-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.id === id);
+      });
+    }
+
+    document.querySelectorAll(".preset-btn").forEach((btn) => {
+      btn.onclick = async () => {
+        if (busy) return;
+        busy = true;
+        document.querySelectorAll(".preset-btn").forEach((b) => {
+          b.disabled = true;
+        });
+        clearMsg();
+        try {
+          const res = await fetch("/presets/recall", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify({ id: btn.dataset.id }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data.ok) {
+            setActive(btn.dataset.id);
+            clearMsg();
+          } else {
+            showError(data.error || "Preset move failed");
+          }
+        } catch (e) {
+          showError("Network error");
+        } finally {
+          busy = false;
+          document.querySelectorAll(".preset-btn").forEach((b) => {
+            b.disabled = false;
+          });
+        }
+      };
+    });
+  })();
+</script>
+{% endblock %}

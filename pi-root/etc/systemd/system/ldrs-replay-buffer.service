@@ -1,0 +1,19 @@
+[Unit]
+Description=Sport Assist RTSP ingest and rolling HLS buffers
+After=ldrs-commissioned-boot.service ldrs-network.service ldrs-camera-discovery.service
+Wants=ldrs-network.service ldrs-camera-discovery.service ldrs-hls-delay-playlists.service
+
+[Service]
+Type=simple
+User=sportassist
+Group=sportassist
+RuntimeDirectory=sportassist
+RuntimeDirectoryMode=0755
+ExecStart=/usr/local/bin/ldrs-replay-buffer.sh
+Restart=always
+RestartSec=10
+TimeoutStopSec=15
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target

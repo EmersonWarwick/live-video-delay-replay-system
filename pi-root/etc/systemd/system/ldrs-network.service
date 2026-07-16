@@ -1,0 +1,12 @@
+[Unit]
+Description=Sport Assist Ethernet camera network
+After=network.target NetworkManager.service
+Before=ldrs-wifi-ap.service ldrs-camera-discovery.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/ldrs-network.sh
+
+[Install]
+WantedBy=multi-user.target

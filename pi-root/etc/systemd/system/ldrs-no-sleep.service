@@ -1,0 +1,13 @@
+[Unit]
+Description=Sport Assist — disable sleep and display blanking
+DefaultDependencies=no
+After=local-fs.target
+Before=ldrs-hdmi-delay.service ldrs-hdmi-live.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/ldrs-no-sleep.sh
+
+[Install]
+WantedBy=multi-user.target

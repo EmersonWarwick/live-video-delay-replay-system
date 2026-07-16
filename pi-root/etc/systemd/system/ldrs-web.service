@@ -1,0 +1,17 @@
+[Unit]
+Description=Sport Assist web UI and HTTP API
+After=network.target ldrs-wifi-ap.service
+Wants=network.target
+
+[Service]
+Type=simple
+User=sportassist
+Group=sportassist
+WorkingDirectory=/home/sportassist/dev/ldrs/server
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /home/sportassist/dev/ldrs/server/app.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

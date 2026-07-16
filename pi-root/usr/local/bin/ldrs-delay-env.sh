@@ -1,0 +1,15 @@
+# shellcheck shell=bash
+# Shared delay settings — source from replay/HDMI scripts (do not execute directly).
+[[ -f /etc/sportassist/system.env ]] && source /etc/sportassist/system.env
+: "${LIVE_DELAY_SECONDS:=14}"
+: "${PIPELINE_LATENCY_SECONDS:=3}"
+: "${HDMI_PLAYBACK_BIAS_SECONDS:=0}"
+: "${HDMI_VLC_CACHING_MS:=200}"
+
+# Wi-Fi HLS edge offset (camera → HLS edge ≈ PIPELINE_LATENCY_SECONDS).
+PLAYBACK_OFFSET=$(( LIVE_DELAY_SECONDS - PIPELINE_LATENCY_SECONDS - HDMI_PLAYBACK_BIAS_SECONDS ))
+(( PLAYBACK_OFFSET < 0 )) && PLAYBACK_OFFSET=0
+MIN_BUFFER_SEGMENTS=$(( PLAYBACK_OFFSET + PIPELINE_LATENCY_SECONDS + 3 ))
+
+export LIVE_DELAY_SECONDS PIPELINE_LATENCY_SECONDS HDMI_PLAYBACK_BIAS_SECONDS
+export HDMI_VLC_CACHING_MS PLAYBACK_OFFSET MIN_BUFFER_SEGMENTS

@@ -1,0 +1,20 @@
+[Unit]
+Description=Sport Assist delayed Wi-Fi HLS playlist (tablet sync)
+After=ldrs-replay-buffer.service
+BindsTo=ldrs-replay-buffer.service
+PartOf=ldrs-replay-buffer.service
+
+[Service]
+Type=simple
+User=sportassist
+Group=sportassist
+Environment=HOME=/home/sportassist
+Environment=PYTHONPATH=/home/sportassist/dev/ldrs
+LogsDirectory=sportassist
+LogsDirectoryMode=0755
+ExecStart=/usr/local/bin/ldrs-update-delayed-hls.sh
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
