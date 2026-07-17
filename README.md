@@ -4,6 +4,8 @@ An open-source, spec-driven sports replay platform for **Raspberry Pi 5**. It in
 
 Designed for unattended poolside, pitchside, and training-venue operation. Originally developed for **Board Diving**; the project is evolving into a **generic sports replay platform** suitable for multiple sports and coaching environments.
 
+This project is open source under the [Apache License 2.0](LICENSE). Please read the [DISCLAIMER.md](DISCLAIMER.md) file before using or deploying the software.
+
 **License:** [Apache 2.0](LICENSE) — Copyright © Emerson Warwick Limited (see [NOTICE](NOTICE))
 
 **Contributions welcome** — please open a [pull request](CONTRIBUTING.md). Bug reports and ideas are appreciated via GitHub Issues and Discussions.
@@ -223,6 +225,16 @@ We believe **GDPR** and related data-protection expectations matter for sports v
 - **Operator responsibility** — venues should inform athletes and staff as appropriate, restrict physical and network access to the unit, use strong unique passwords per appliance, and disable SSH when remote administration is not required.
 
 Deployers remain responsible for lawful basis, notices, and retention policies under the rules that apply to their organisation and country.
+
+---
+
+## Disclaimer
+
+This project is provided for sports coaching, video replay, and educational purposes.
+
+The software is provided **"AS IS"**, without warranties of any kind. Users are responsible for testing, validating, and safely deploying the software in their own environments.
+
+Please read the full [DISCLAIMER.md](DISCLAIMER.md) before using this software.
 
 ---
 
